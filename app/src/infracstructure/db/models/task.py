@@ -23,7 +23,7 @@ class Tasks(Base):
         server_default=text("TIMEZONE('utc', now())")
     )
 
-    is_complated: Mapped[bool] = mapped_column(default=False)
-    compalted_at: Mapped[datetime | None] = mapped_column(default=None)
+    is_completed: Mapped[bool] = mapped_column(default=False)
+    completed_at: Mapped[datetime | None] = mapped_column(default=None)
 
     tags: Mapped[list[str]] = mapped_column(ARRAY(String))
