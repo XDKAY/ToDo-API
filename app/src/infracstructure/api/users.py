@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Response, status
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.src.core.models.user import UserInputModel, UserResponseModel
+from app.src.core.models.user import UserInputModel, UserResponseModel, UserUpdateModel
 from app.src.core.security.auth import authenticate_user, get_current_user
 from app.src.core.security.token import create_token, decode_token
 
@@ -82,3 +82,33 @@ async def refresh(refresh_token: str):
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+
+@router.get("/me")
+async def get_me(current_user: UserResponseModel = Depends(get_current_user)):
+    return current_user
+
+
+@router.delete("/me")
+async def delete_me(
+    user_service: UserServiceDP,
+    current_user: UserResponseModel = Depends(get_current_user),
+):
+    await user_service.delete_user(current_user.id)
+    return {"message": "User deleted successfully"}
+
+
+@router.patch("/me")
+async def update_me(
+    user: UserUpdateModel,
+    user_service: UserServiceDP,
+    current_user: UserResponseModel = Depends(get_current_user),
+):
+    await user_service.update_user(current_user.id, user)
+    return {"message": "User updated successfully"}
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie("refresh_token")
+    return {"message": "Logged out successfully"}
