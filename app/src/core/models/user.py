@@ -63,3 +63,4 @@ class UserResponseModel(BaseModel):
     id: UUID
     username: str
     email: str
+    hashed_password: str = Field(exclude=True)
