@@ -1,7 +1,12 @@
-from fastapi import APIRouter, status
-from fastapi.exceptions import HTTPException
+from uuid import UUID
 
-from app.src.core.models.user import UserInputModel
+from fastapi import APIRouter, Depends, Response, status
+from fastapi.exceptions import HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+
+from app.src.core.models.user import UserInputModel, UserResponseModel
+from app.src.core.security.auth import authenticate_user, get_current_user
+from app.src.core.security.token import create_token, decode_token
 
 from .dependencies import UserServiceDP
 
@@ -23,3 +28,57 @@ async def register(user: UserInputModel, user_service: UserServiceDP):
     await user_service.add_user(user)
 
     return {"message": "User registered successfully", "user": user}
+
+
+@router.post("/login")
+async def token(
+    user_service: UserServiceDP,
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+):
+    user = await authenticate_user(user_service, form_data.username, form_data.password)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+
+    access_token = create_token(data={"sub": str(user.id)}, token_type="access")
+
+    refresh_token = create_token(data={"sub": str(user.id)}, token_type="refresh")
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
+
+@router.post("/refresh")
+async def refresh(refresh_token: str):
+    payload = decode_token(refresh_token)
+
+    if payload["type"] != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    access_token = create_token(
+        data={"sub": payload["sub"]},
+        token_type="access",
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
