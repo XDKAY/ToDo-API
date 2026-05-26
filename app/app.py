@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.src.infracstructure.api import routers
 from app.src.infracstructure.db.database import connect_database, disconnect_database
 
 
@@ -13,3 +14,4 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(routers)
